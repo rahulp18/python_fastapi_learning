@@ -1,12 +1,19 @@
 from app.db.base import Base
-from sqlalchemy import String,ForeignKey,DateTime,func
+from sqlalchemy import String,ForeignKey,DateTime,func,UniqueConstraint
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 import uuid
 from datetime import datetime
 
 class Workspace(Base):
     __tablename__="workspaces"
-
+   
+    __table_args__=(
+        UniqueConstraint(
+            "organization_id",
+            "slug",
+            name="uq_workspace_slug_per_org"
+        ),
+    )
     id:Mapped[str]=mapped_column(
         String(36),
         default=lambda:str(uuid.uuid4()),
@@ -27,7 +34,6 @@ class Workspace(Base):
     )
     slug:Mapped[str]=mapped_column(
         String(255),
-        unique=True,
         index=True,
         nullable=False
     )

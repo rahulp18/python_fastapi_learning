@@ -6,5 +6,8 @@ def get_db()->Generator[Session]:
     db=SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+
     finally:
         db.close()

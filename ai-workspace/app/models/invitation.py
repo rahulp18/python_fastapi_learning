@@ -5,7 +5,8 @@ from sqlalchemy import (
     String,
     ForeignKey,
     DateTime,
-    func
+    func,
+    UniqueConstraint
 )
 
 from sqlalchemy.orm import (
@@ -19,7 +20,13 @@ from app.db.base import Base
 
 class Invitation(Base):
     __tablename__ = "invitations"
-
+    __table_args__=(
+        UniqueConstraint(
+            "workspace_id",
+            "email",
+            "status"
+        ),
+    )
     id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True,
