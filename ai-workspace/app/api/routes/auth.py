@@ -3,9 +3,9 @@ from fastapi import APIRouter,Depends
  
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user_schema import UserResponseSchema
-from app.schemas.auth_schema import SignupSchema
 from app.api.dependencies.db import get_db
 from app.services.auth_service import AuthService
+from app.schemas.auth_schema import TokenResponseSchema,SigninSchema,SignupSchema
 router=APIRouter(
     prefix="/auth",
     tags=["Authentication"]
@@ -15,13 +15,12 @@ router=APIRouter(
 async def signup(user:SignupSchema,db:AsyncSession=Depends(get_db)):
     return await AuthService.signup(db,user)
 
-# @router.post('/signin',response_model=TokenResponseSchema,)
-# async def signin(login_data:SigninSchema,db:Session=Depends(get_db)):
-#     return AuthService.signin(
-#         db,
-#         email=login_data.email,
-#         password=login_data.password
-#     )
+@router.post('/signin',response_model=TokenResponseSchema,status_code=200)
+async def signin(data:SigninSchema,db:AsyncSession=Depends(get_db)):
+    return await AuthService.signin(
+        db=db,
+        data=data
+    )
 # @router.get("/me",response_model=UserResponseSchema)
 # async def get_authenticated_item(current_user=Depends(get_current_user)):
 #     return current_user

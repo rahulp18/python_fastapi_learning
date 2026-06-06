@@ -21,7 +21,7 @@ def create_access_token(data:dict)->str:
 
     to_encode.update({
         "exp":expire,
-        type:"access"
+        "type":"access"
     })
 
     encoded_jwt=jwt.encode(
@@ -44,21 +44,4 @@ def decode_access_token(token:str)->str|None:
     except InvalidTokenError:
         return None
 
-def slugify(text:str)->str:
-    text=text.lower().strip()
-    text = re.sub(r"[^a-z0-9\s-]", "", text)
-    text = re.sub(r"\s+", "-", text)
-
-    return text
-
-async def generate_uniq_slug(name:str,slug_exists)->str:
-    base_slug=slugify(name)
-    alphabet=string.ascii_letters+string.digits
-
-    while True:
-        suffix="".join(random.choices(alphabet,k=5))
-
-        slug=f"{base_slug}-{suffix}"
-
-        if not await slug_exists(slug):
-            return slug
+ 

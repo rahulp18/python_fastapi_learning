@@ -2,8 +2,8 @@ from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth_schema import SignupSchema
-from app.core.security import hash_password
+from app.schemas.auth_schema import SignupSchema,SigninSchema
+from app.core.security import hash_password,verify_password,create_access_token
 from app.services.organization_service import OrganizationService
  
 class AuthService: 
@@ -40,8 +40,31 @@ class AuthService:
             )
  
             await db.commit()
-
             return user
-        except Exception:
+        except:
             await db.rollback()
             raise
+    
+    @staticmethod
+    async def signin(db:AsyncSession,data:SigninSchema):
+        user=await UserRepository.get_by_email(db,data.email)
+        
+        if not user or not verify_password(data.password,user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+  
+        access_token=create_access_token(
+            {
+                "sub":str(user.id),
+                "email":user.email
+            }
+        )
+
+        return {
+            "access_token":access_token,
+            "token_type":"Bearer"
+        }
+
