@@ -1,11 +1,11 @@
-from fastapi import HTTPException,status
+from fastapi import HTTPException,status,Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import datetime,timezone,timedelta
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import SignupSchema,SigninSchema
-from app.core.security import hash_password,verify_password,create_access_token
+from app.core.security import hash_password,verify_password,create_access_token,create_refresh_token,hash_token
 from app.services.organization_service import OrganizationService
- 
+from app.repositories.session_repository import SessionRepository
 class AuthService: 
     @staticmethod
     async def signup(db:AsyncSession,data:SignupSchema):
@@ -46,7 +46,7 @@ class AuthService:
             raise
     
     @staticmethod
-    async def signin(db:AsyncSession,data:SigninSchema):
+    async def signin(db:AsyncSession,data:SigninSchema,request:Request):
         user=await UserRepository.get_by_email(db,data.email)
         
         if not user or not verify_password(data.password,user.password):
@@ -54,17 +54,38 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
             )
-        
-  
+        ip_address=request.headers.get('x-forwarded-for') or request.client.host
+        user_agent=request.headers.get("user-agent")
+
+        expires_at=datetime.now(timezone.utc)+timedelta(days=30)
+
+        refresh_token=create_refresh_token(
+            {
+                "sub":str(user.id)
+            }
+        )
+        # store session in db 
+        session=await SessionRepository.create(
+            db=db,
+            user_id=user.id,
+            refresh_token_hash=hash_token(refresh_token),
+            user_agent=user_agent,
+            ip_address=ip_address,
+            expires_at=expires_at
+        )
+        await db.commit()
         access_token=create_access_token(
             {
                 "sub":str(user.id),
-                "email":user.email
+                "session_id":str(session.id),
+                "email":user.email,
+                "type":"access"
             }
         )
 
         return {
             "access_token":access_token,
+            "refresh_token":refresh_token,
             "token_type":"Bearer"
         }
 

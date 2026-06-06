@@ -8,6 +8,7 @@ from app.models.role import Role
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.models.invitation import Invitation
+from app.models.session import Session
 from app.models.enums import (
     ProjectStatus,
 )
@@ -24,4 +25,5 @@ __all__ = [
     "RolePermission",
     "Invitation",
     "ProjectStatus",
+    "Session"
 ]

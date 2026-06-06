@@ -1,11 +1,10 @@
-from datetime import datetime,timedelta,timezone
 import jwt
+import hashlib
+from datetime import datetime,timedelta,timezone
 from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
 from app.core.config import settings
-import random
-import string
-import re
+
 password_hash=PasswordHash.recommended()
 
 def hash_password(password:str)->str:
@@ -44,4 +43,23 @@ def decode_access_token(token:str)->str|None:
     except InvalidTokenError:
         return None
 
- 
+def create_refresh_token(data:dict)->str:
+    to_encode=data.copy()
+
+    expire=datetime.now(timezone.utc)+timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
+    to_encode.update({
+        "exp":expire,
+        "type":"refresh"
+    })
+
+    return jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
+    )
+
+def hash_token(token:str)->str:
+    return hashlib.sha256(token.encode()).hexdigest()
