@@ -1,13 +1,5 @@
-from collections.abc import Generator
-from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
-
-def get_db()->Generator[Session]:
-    db=SessionLocal()
-    try:
-        yield db
-    except Exception:
-        db.rollback()
-
-    finally:
-        db.close()
+ 
+from app.db.session import AsyncSessionLocal
+async def get_db():
+  async with AsyncSessionLocal() as session:
+    yield session

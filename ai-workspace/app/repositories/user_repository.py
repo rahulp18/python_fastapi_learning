@@ -1,24 +1,34 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
+from sqlalchemy import select
+from app.models.user import User
+from app.schemas.auth_schema import SignupSchema
+class UserRepository:
+    
+    @staticmethod
+    async def get_by_email(db:AsyncSession,email:str)->User|None:
+        statement=select(User).where(
+            User.email==email
+        )
+        result=await db.execute(statement)
 
-
-def create_user(db:Session,user_data:dict):
-    user=User(
-        name=user_data["name"],
-        email=user_data["email"],
-        password=user_data["password"]
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-def get_user_by_email(db:Session,email:str):
-     try:
-          return (
-               db.query(User).filter(User.email==email).first()
-          )
-     except:
-          return None
-          
-     
+        return result.scalar_one_or_none()
+    @staticmethod
+    async def get_by_username(db:AsyncSession,username:str)->User|None:
+        statement=select(User).where(
+            User.username==username
+        )
+        result=await db.execute(statement)
+        return result.scalar_one_or_none()
+    @staticmethod
+    async def create(db:AsyncSession,data:SignupSchema,hashed_password:str)->User:
+        user=User(
+            name=data.name,
+            username=data.username,
+            email=data.email,
+            password=hashed_password
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+        return user

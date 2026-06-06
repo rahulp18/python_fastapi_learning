@@ -1,5 +1,5 @@
 from app.db.base import Base
-from sqlalchemy import String,ForeignKey,DateTime,func,UniqueConstraint
+from sqlalchemy import Index,String,ForeignKey,DateTime,func,UniqueConstraint
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 import uuid
 from datetime import datetime
@@ -13,6 +13,7 @@ class Workspace(Base):
             "slug",
             name="uq_workspace_slug_per_org"
         ),
+        Index("ix_workspace_org_slug","organization_id","slug")
     )
     id:Mapped[str]=mapped_column(
         String(36),
