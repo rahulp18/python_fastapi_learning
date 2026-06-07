@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime,timezone
 from app.models import Session
+from sqlalchemy import select
 class SessionRepository:
 
     @staticmethod
@@ -23,4 +24,22 @@ class SessionRepository:
         await db.flush()
         await db.refresh(session)
         return session
-        
+    @staticmethod
+    async def get_active_by_user_id(db:AsyncSession,user_id:str):
+        now=datetime.now(timezone.utc)
+        result=await db.execute(
+            select(Session).where(
+                Session.user_id==user_id,
+                Session.revoked_at.is_(None),
+                Session.expires_at>now
+            )
+        )
+        return result.scalars().all()
+    @staticmethod
+    async def get_session_by_id(db:AsyncSession,id:str):
+        result=await db.execute(
+            select(Session).where(
+                Session.id==id
+            )
+        )
+        return result.scalar_one_or_none()

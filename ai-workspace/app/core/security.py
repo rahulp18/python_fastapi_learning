@@ -31,7 +31,7 @@ def create_access_token(data:dict)->str:
 
     return encoded_jwt
 
-def decode_access_token(token:str)->str|None:
+def decode_access_token(token:str)->dict|None:
     try:
         payload=jwt.decode(
             token,
@@ -40,7 +40,7 @@ def decode_access_token(token:str)->str|None:
         )
 
         return payload
-    except InvalidTokenError:
+    except:
         return None
 
 def create_refresh_token(data:dict)->str:

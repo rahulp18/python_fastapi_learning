@@ -1,6 +1,6 @@
-from fastapi import APIRouter,Depends,Request
-# from app.api.dependencies.auth import get_current_user
- 
+from fastapi import APIRouter,Depends,Request,HTTPException,status
+from app.api.dependencies.auth import get_current_user
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user_schema import UserResponseSchema
 from app.api.dependencies.db import get_db
@@ -22,7 +22,16 @@ async def signin(request:Request,data:SigninSchema,db:AsyncSession=Depends(get_d
         db=db,
         data=data
     )
-# @router.get("/me",response_model=UserResponseSchema)
-# async def get_authenticated_item(current_user=Depends(get_current_user)):
-#     return current_user
+@router.post('/refresh',status_code=201)
+async def refresh_token(request:Request,db:AsyncSession=Depends(get_db)):
+    refresh_token=request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token missing"
+        )
+    return await AuthService.refresh_token(db=db,refresh_token=refresh_token)
+@router.get("/me",response_model=UserResponseSchema)
+async def get_authenticated_item(request:Request,db:AsyncSession=Depends(get_db),user=Depends(get_current_user)):
+    return user
      

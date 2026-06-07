@@ -3,7 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime,timezone,timedelta
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import SignupSchema,SigninSchema
-from app.core.security import hash_password,verify_password,create_access_token,create_refresh_token,hash_token
+from app.core.security import (hash_password,
+                               verify_password,
+                               create_access_token,
+                               create_refresh_token,
+                               hash_token,
+                               decode_access_token
+                               )
 from app.services.organization_service import OrganizationService
 from app.repositories.session_repository import SessionRepository
 class AuthService: 
@@ -88,4 +94,61 @@ class AuthService:
             "refresh_token":refresh_token,
             "token_type":"Bearer"
         }
+
+    @staticmethod
+    async def refresh_token(db:AsyncSession,refresh_token:str):
+        payload=decode_access_token(refresh_token)
+
+        if not payload or payload.get("type") !="refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        user_id=payload['sub']
+
+        sessions=await SessionRepository.get_active_by_user_id(db,user_id)
+        if not sessions:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Sessions not found")
+        
+        session=None
+        for s in sessions:
+            if s.refresh_token_hash==hash_token(refresh_token):
+                session=s
+                break
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token mismatched"
+            )
+ 
+        if session.expires_at <datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired"
+            )
+        new_refresh_token=create_refresh_token(
+            {
+              "sub":user_id
+            }
+        )
+
+        session.refresh_token_hash=hash_token(new_refresh_token)
+        session.last_used_at=datetime.now(timezone.utc)
+
+        # create new access token
+        new_access_token=create_access_token(
+            {
+                "sub":user_id,
+                "session_id":session.id,
+                "type":"access"
+            }
+        )
+        await db.commit()
+
+        return {
+             "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "Bearer"
+        }
+
 
